@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-guardian</title>
+<meta name="description" content="Free, open-source scanner that finds the AI agents on your machine and shows what they can touch. Falcon Guardian-style visibility for everyone else.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<style>
+  :root {
+    --bg: #0b0d12; --panel: #12161f; --line: #232a37; --text: #e6e9ef; --muted: #8b94a7;
+    --red: #ff5d5d; --green: #3ddc84; --yellow: #f4c542; --accent: #a78bfa; --cyan: #5cc8ff;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 72px 0 40px; }
+  .badge { display: inline-block; font: 600 12px var(--mono); letter-spacing: .06em; color: var(--accent);
+    border: 1px solid #3b2f63; background: #1a1430; padding: 4px 10px; border-radius: 999px; }
+  h1 { font-size: clamp(36px, 7vw, 60px); line-height: 1.05; margin: 18px 0 12px; letter-spacing: -.02em; }
+  .lead { font-size: 19px; color: #c3c9d6; max-width: 660px; margin: 0 0 28px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { padding: 11px 18px; border-radius: 8px; font-weight: 600; border: 1px solid var(--line); color: var(--text); }
+  .btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn:hover { text-decoration: none; opacity: .9; }
+  section { padding: 36px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 22px; margin: 0 0 16px; }
+  .term { background: #07090d; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .term .bar { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .term .bar i { width: 11px; height: 11px; border-radius: 50%; background: #2c3342; }
+  .term pre { margin: 0; padding: 18px; font: 13.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+  .r { color: var(--red); } .g { color: var(--green); } .y { color: var(--yellow); } .m { color: var(--muted); } .b { font-weight: 700; } .c { color: var(--cyan); }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .card .n { font: 700 12px var(--mono); color: var(--accent); letter-spacing: .08em; }
+  .card h3 { margin: 6px 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .card.soon { border-style: dashed; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+  .tag { font: 700 12px var(--mono); padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+  .tag.h { color: var(--red); background: #2a1215; } .tag.mid { color: var(--yellow); background: #2a2410; }
+  code { font: 13.5px var(--mono); background: var(--panel); padding: 2px 6px; border-radius: 4px; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .pill { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 14.5px; }
+  footer { padding: 36px 0 60px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  footer .links { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 10px; }
+  @media (max-width: 600px) { header { padding: 48px 0 28px; } .term pre { font-size: 12px; } th:nth-child(3), td:nth-child(3) { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="badge">SHADOW AI · DISCOVER → MAP → WATCH</span>
+  <h1>ai-guardian 🛡️</h1>
+  <p class="lead">Find the AI agents on your machine, and see what they can touch. Enterprise-style AI agent visibility for freelancers, students, small businesses, and solo devs, free and local.</p>
+  <div class="btns">
+    <a class="btn primary" href="https://github.com/jeffreyesdavid/ai-guardian">View on GitHub</a>
+    <a class="btn" href="#quick-start">Run it in 10 seconds</a>
+  </div>
+</header>
+
+<section>
+  <h2>Real result from my own laptop</h2>
+  <div class="term">
+    <div class="bar"><i></i><i></i><i></i></div>
+<pre><span class="m">$</span> python3 ai_guardian.py
+<span class="b">ai-guardian 1.0.0</span> - what AI is on this machine, and what can it touch?
+
+  <span class="b">AI apps (3)</span>
+    • Claude                <span class="m">Anthropic Claude desktop</span>
+    • LM Studio             <span class="m">LM Studio local AI models</span>
+    • Ollama                <span class="m">Ollama local AI models</span>
+
+  <span class="b">Running now (6)</span>
+    • Claude                <span class="m">running now (26 processes)</span>
+    • LM Studio             <span class="m">running now (4 processes)</span>
+    <span class="m">...</span>
+
+  <span class="b">Local AI servers (2)</span>
+    • Ollama                <span class="m">listening - port 11434</span>
+    • LM Studio             <span class="m">listening - port 1234</span>
+
+  <span class="y">MEDIUM</span> <span class="b">AI extension can read every website: Claude</span>
+         Fix: set Site access to 'On click' in Chrome
+
+  <span class="b">Summary:</span> 16 AI agent(s) found · <span class="r">0 high</span>, <span class="y">1 medium</span> risk(s)</pre>
+  </div>
+  <p class="m" style="font-size:14px">16 AI agents on one personal laptop. Most people would guess two or three.</p>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="card"><div class="n">01 · DISCOVER</div><h3>What AI is here?</h3><p>AI apps, command-line agents, running processes, AI browser extensions, local model servers, and MCP servers: the plugins that connect agents to your files and accounts.</p></div>
+    <div class="card"><div class="n">02 · MAP</div><h3>What can it touch?</h3><p>Flags plain-text API keys, agents with access to your whole drive or SSH keys, permission prompts turned off, and AI servers open to your Wi-Fi.</p></div>
+    <div class="card soon"><div class="n">03 · WATCH <span class="m">(v2)</span></div><h3>Is it doing something sketchy?</h3><p>Phone alerts when an AI process reads your keys or wallets, launches a shell, or talks to a server it never has before.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>What it flags</h2>
+  <table>
+    <tr><th>Level</th><th>Risk</th><th>Why it matters</th></tr>
+    <tr><td><span class="tag h">HIGH</span></td><td>API keys in plain text in agent configs</td><td>Any app or malware that reads your files can steal them</td></tr>
+    <tr><td><span class="tag h">HIGH</span></td><td>Agent plugin with access to your whole drive or <code>~/.ssh</code></td><td>One poisoned webpage away from leaking your keys</td></tr>
+    <tr><td><span class="tag h">HIGH</span></td><td>Permission prompts turned off</td><td>The agent runs commands without asking</td></tr>
+    <tr><td><span class="tag h">HIGH</span></td><td>Local AI server open to your network</td><td>Anyone on coffee-shop Wi-Fi can use it</td></tr>
+    <tr><td><span class="tag h">HIGH</span></td><td>Agent plugin over unencrypted <code>http://</code></td><td>Traffic can be read or changed in transit</td></tr>
+    <tr><td><span class="tag mid">MEDIUM</span></td><td>Plugins that auto-install the latest code</td><td>A hijacked package runs with your agent's access</td></tr>
+    <tr><td><span class="tag mid">MEDIUM</span></td><td>AI extensions that can read every website</td><td>Includes your email, bank, and work tools</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Built for privacy</h2>
+  <div class="pill-row">
+    <span class="pill">🔒 Read-only</span>
+    <span class="pill">🙈 Secrets always masked</span>
+    <span class="pill">🏠 Nothing leaves your computer</span>
+    <span class="pill">📦 No installs, Python standard library</span>
+    <span class="pill">🧪 23 tests</span>
+  </div>
+</section>
+
+<section id="quick-start">
+  <h2>Quick start</h2>
+  <div class="term">
+    <div class="bar"><i></i><i></i><i></i></div>
+<pre>git clone https://github.com/jeffreyesdavid/ai-guardian.git
+cd ai-guardian
+python3 ai_guardian.py                 <span class="m"># full scan</span>
+python3 ai_guardian.py --json          <span class="m"># machine-readable output</span>
+python3 ai_guardian.py --fail-on medium  <span class="m"># stricter exit code for CI</span></pre>
+  </div>
+</section>
+
+<section>
+  <h2>Why I built this</h2>
+  <p style="color:#c3c9d6;max-width:700px">At Fal.Con 2026, CrowdStrike launched Falcon Guardian to help enterprises discover their AI agents, map what they can access, and stop threats where they run. The idea is right. But the people installing AI agents fastest (freelancers, small shops, students) will never buy enterprise security. ai-guardian brings the same <b>discover → map → watch</b> model to everyone else, for free.</p>
+</section>
+
+<section>
+  <h2>Roadmap</h2>
+  <table>
+    <tr><td class="g b">✓ v1</td><td>Discover + Map: find AI agents and flag risky setups</td></tr>
+    <tr><td class="m b">v2</td><td>Watch: live phone alerts on sketchy AI behavior</td></tr>
+    <tr><td class="m b">v3</td><td>Explain: a local AI describes each alert in plain English</td></tr>
+    <tr><td class="m b">v4</td><td>Red vs. blue lab: agents attack each other with prompt injection to build detection rules</td></tr>
+  </table>
+</section>
+
+<footer>
+  <div class="links">
+    <a href="https://github.com/jeffreyesdavid">Built by Jeffrey David</a>
+    <a href="https://jeffreyesdavid.github.io/php-guardian/">php-guardian</a>
+    <a href="https://github.com/jeffreyesdavid/wifi-guardian">Wi-Fi Guardian</a>
+    <a href="https://jeffreyesdavid.github.io/vpn-guardian/">VPN Guardian</a>
+  </div>
+  Defensive tool for machines you own or are authorized to check. MIT licensed. Not affiliated with CrowdStrike or any AI vendor.
+</footer>
+
+</div>
+</body>
+</html>
