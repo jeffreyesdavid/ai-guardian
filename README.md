@@ -25,13 +25,14 @@ ai-guardian is a free, open-source, local scanner that gives you the same visibi
 | API keys or tokens saved in plain text in agent configs | 🟥 HIGH |
 | MCP server with access to your whole drive, home folder, or `~/.ssh` | 🟥 HIGH |
 | Agent set to skip permission prompts, or allowed to run any shell command | 🟥 HIGH |
-| MCP server connecting over unencrypted `http://` | 🟥 HIGH |
+| MCP server connecting over unencrypted `http://` (directly or through a proxy like `mcp-remote`) | 🟥 HIGH |
 | Local AI server open to everyone on your Wi-Fi | 🟥 HIGH |
 | MCP server that auto-installs the latest unpinned code on every launch | 🟨 MEDIUM |
 | MCP server built to run shell commands | 🟨 MEDIUM |
 | Passwords pasted into MCP server settings | 🟨 MEDIUM |
 | AI API keys in your shell profile (`.zshrc`, `.bashrc`) | 🟨 MEDIUM |
 | AI browser extension that can read every website | 🟨 MEDIUM |
+| MCP server that sends tool data to an outside host | 🟦 LOW |
 
 Every finding explains **why** it matters in plain English and **how** to fix it.
 
@@ -53,6 +54,8 @@ python3 ai_guardian.py
 Works on macOS and Linux.
 
 ## Real result from my own Mac
+
+v1.0 scan, Oct 22, 2026. In v1.1 the summary reports installed agents and running processes separately.
 
 ```
 ai-guardian 1.0.0 - what AI is on this machine, and what can it touch?
@@ -88,6 +91,23 @@ ai-guardian 1.0.0 - what AI is on this machine, and what can it touch?
 
 16 AI agents on one personal laptop. Most people would guess two or three.
 
+## What's new in v1.1
+
+- **Installed vs. running.** The summary now reads `N installed, M running now`, so restarting an app no longer changes the agent count. JSON adds a `running` field.
+- **Outside-server detection.** MCP servers that send data to a remote host now get a LOW finding naming that host, including servers wrapped in proxies like `mcp-remote`. The unencrypted `http://` check covers proxied URLs too.
+- **Real pinning advice.** Unpinned packages now get the exact version already in your local npx cache (for example `mcp-remote@0.1.29`), or the command to look it up. Still no network calls.
+- **26 tests**, up from 23.
+
+## I tested my scanner on the trust index that listed it
+
+On October 25, 2026, M8ven added ai-guardian to its MCP Trust Index. That evening, I installed M8ven's own ToolCheck server on my Mac and ran ai-guardian before and after.
+
+It caught the new server immediately and flagged its unpinned `npx` launch as a supply-chain risk. The diff, however, exposed a flaw in my own tool: the agent count went **down**, from 16 to 15, after I added one. Restarting Claude to load the server had reset its helper processes, and v1.0 counted live processes in the same total as installed agents.
+
+The same test surfaced two more gaps. The fix text recommended a placeholder version (`mcp-remote@1.2.3`), and nothing warned that the server forwards tool data to an outside host. v1.1 closes all three, the same night.
+
+A security tool should be tested against real, unfamiliar software, including its own blind spots.
+
 ## Options
 
 | Command | What it does |
@@ -105,11 +125,12 @@ ai-guardian 1.0.0 - what AI is on this machine, and what can it touch?
 python3 tests/test_ai_guardian.py
 ```
 
-23 tests build a fake home folder full of risky AI setups and check that each one is caught, that a safe setup stays quiet, and that **no secret is ever printed in full**. The fake keys are assembled at runtime, so no secret-looking strings live in this repo.
+26 tests build a fake home folder full of risky AI setups and check that each one is caught, that a safe setup stays quiet, and that **no secret is ever printed in full**. The fake keys are assembled at runtime, so no secret-looking strings live in this repo.
 
 ## Roadmap
 
 - [x] **v1: Discover + Map.** Find AI agents and flag risky setups.
+- [x] **v1.1: Accuracy.** Installed vs. running counts, outside-server detection, real version pinning.
 - [ ] **v2: Watch.** Live phone alerts (via ntfy) when an AI process reads SSH keys, browser passwords, or crypto wallets, launches a shell, or talks to a new server.
 - [ ] **v3: Explain.** A local AI (Ollama) explains each alert in plain English, the same approach as VPN Guardian.
 - [ ] **v4: Red vs. blue lab.** One local agent tries prompt injection on another, and the attacks that work become detection rules.

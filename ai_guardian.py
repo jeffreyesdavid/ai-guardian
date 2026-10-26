@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ai-guardian v1.0.0
+ai-guardian v1.1.0
 Find the AI agents on your machine and see what they can touch.
 
 Discover: AI apps, command-line agents, running AI processes, AI browser
@@ -28,7 +28,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 # ---------------------------------------------------------------- catalog
 
@@ -129,6 +129,7 @@ SENSITIVE_PATHS = [".ssh", ".aws", ".gnupg", "Library/Keychains", ".config/gclou
                    "Library/Application Support/Google/Chrome", ".kube", ".docker"]
 
 SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2, "INFO": 3}
+LIVE_TYPES = ("process", "server")  # depend on timing, not on what's installed
 
 
 # ---------------------------------------------------------------- helpers
@@ -224,6 +225,14 @@ class Scanner:
 
     def agent(self, kind, name, where, detail=""):
         self.agents.append({"type": kind, "name": name, "where": self.short(where), "detail": detail})
+
+    @property
+    def installed(self):
+        return [a for a in self.agents if a["type"] not in LIVE_TYPES]
+
+    @property
+    def running(self):
+        return [a for a in self.agents if a["type"] in LIVE_TYPES]
 
     def finding(self, sev, title, where, why, fix):
         self.findings.append({"severity": sev, "title": title, "where": self.short(where),
@@ -384,12 +393,27 @@ class Scanner:
         url = str(cfg.get("url", "") or cfg.get("serverUrl", ""))
         full = " ".join([cmd] + args)
 
-        # remote server over plain http
-        if url.startswith("http://") and not re.match(r"http://(localhost|127\.0\.0\.1|\[::1\])", url):
-            self.finding("HIGH", f"MCP server '{name}' talks to the internet without encryption",
-                         path, f"It connects to {url} over http, so anyone on your network "
-                         "could read or change what the agent sends and receives.",
-                         "Switch to the https version of this server, or remove it.")
+        # remote endpoints: in the url field, or passed to a proxy like mcp-remote
+        urls = [url] if url else []
+        urls += [a for a in args if re.match(r"https?://", a, re.I)]
+        seen_hosts = set()
+        for u in urls:
+            host = re.sub(r"^https?://", "", u, flags=re.I).split("/")[0].split("@")[-1]
+            hostname = host.rsplit(":", 1)[0].strip("[]").lower()
+            if hostname in ("localhost", "127.0.0.1", "::1") or hostname.endswith(".localhost"):
+                continue
+            if u.lower().startswith("http://"):
+                self.finding("HIGH", f"MCP server '{name}' talks to the internet without encryption",
+                             path, f"It connects to {u} over http, so anyone on your network "
+                             "could read or change what the agent sends and receives.",
+                             "Switch to the https version of this server, or remove it.")
+            if hostname and hostname not in seen_hosts:
+                seen_hosts.add(hostname)
+                self.finding("LOW", f"MCP server '{name}' sends data to an outside server ({hostname})",
+                             path, "Whatever your agent passes to this server's tools (file "
+                             f"contents, messages, search text) leaves your computer and goes to {hostname}.",
+                             "Keep it only if you trust who runs that server, and don't use its "
+                             "tools on private files or accounts.")
 
         # unpinned packages pulled fresh every launch
         runner = os.path.basename(cmd)
@@ -398,11 +422,19 @@ class Scanner:
             pkg = pkgs[0] if pkgs else "?"
             pinned = bool(re.search(r"@\d", pkg)) or ("==" in pkg)
             if not pinned:
+                sep = "==" if runner == "uvx" else "@"
+                have = self._cached_version(pkg) if sep == "@" else None
+                if have:
+                    fix = f"Pin the version you already have: replace '{pkg}' with '{pkg}@{have}'."
+                else:
+                    look = f"pip index versions {pkg}" if sep == "==" else f"npm view {pkg} version"
+                    fix = (f"Pin an exact version: run `{look}`, check it, then use "
+                           f"'{pkg}{sep}<that version>'.")
                 self.finding(
                     "MEDIUM", f"MCP server '{name}' auto-installs the latest code every launch",
                     path, f"`{full[:80]}` downloads '{pkg}' fresh each time. If that package is "
                     "ever hijacked, the new code runs with your agent's access, with no review.",
-                    f"Pin a version you trust, for example {pkg}@1.2.3.")
+                    fix)
 
         # broad filesystem access
         for a in args:
@@ -441,6 +473,18 @@ class Scanner:
                          path, "Shell access means anything the agent is tricked into doing "
                          "(for example by a poisoned webpage or file) can run as you.",
                          "Keep approval prompts on for this server, and remove it when not in use.")
+
+    def _cached_version(self, pkg):
+        """Version of an npm package already in the local npx cache, or None."""
+        best = None
+        for pj in glob.glob(os.path.join(self.h(".npm/_npx"), "*", "node_modules", pkg, "package.json")):
+            data = load_json(pj)
+            v = str(data.get("version", "")) if isinstance(data, dict) else ""
+            if re.match(r"^\d+\.\d+\.\d+$", v):
+                key = tuple(int(x) for x in v.split("."))
+                if best is None or key > best[0]:
+                    best = (key, v)
+        return best[1] if best else None
 
     def _check_agent_permissions(self, owner, path, data):
         perms = data.get("permissions") if isinstance(data.get("permissions"), dict) else {}
@@ -572,8 +616,10 @@ def print_report(sc, use_color):
             print(f"         {C['d']}{f['where']}{C['x']}")
             print(f"         Why: {f['why']}")
             print(f"         Fix: {f['fix']}\n")
-    print(f"  {C['b']}Summary:{C['x']} {len(sc.agents)} AI agent(s) found · "
-          f"{C['r']}{counts['HIGH']} high{C['x']}, {C['y']}{counts['MEDIUM']} medium{C['x']} risk(s)")
+    live = f", {len(sc.running)} running now" if sc.check_live else ""
+    print(f"  {C['b']}Summary:{C['x']} {len(sc.installed)} AI agent(s) installed{live} · "
+          f"{C['r']}{counts['HIGH']} high{C['x']}, {C['y']}{counts['MEDIUM']} medium{C['x']}, "
+          f"{C['c']}{counts['LOW']} low{C['x']} risk(s)")
     print(f"  {C['d']}Read-only scan. Secrets are masked. Nothing left this computer.{C['x']}")
 
 
@@ -582,9 +628,11 @@ def to_json(sc):
         "tool": "ai-guardian", "version": VERSION, "host": socket.gethostname(),
         "scanned_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "summary": {
-            "agents": len(sc.agents),
+            "agents": len(sc.installed),
+            "running": len(sc.running),
             "high": sum(1 for f in sc.findings if f["severity"] == "HIGH"),
             "medium": sum(1 for f in sc.findings if f["severity"] == "MEDIUM"),
+            "low": sum(1 for f in sc.findings if f["severity"] == "LOW"),
         },
         "agents": sc.agents, "findings": sc.findings,
     }

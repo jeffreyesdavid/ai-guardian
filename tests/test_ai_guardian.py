@@ -157,7 +157,9 @@ class SafeHome(unittest.TestCase):
             write(home, ".claude/settings.json", {"permissions": {"allow": ["Bash(npm test)"]}})
             write(home, ".zshrc", 'export PATH="$HOME/bin:$PATH"\n')
             sc = scan(home)
-            self.assertEqual(sc.findings, [], titles(sc))
+            # a trusted https remote server only gets a LOW heads-up, nothing worse
+            self.assertEqual([f["severity"] for f in sc.findings], ["LOW"], titles(sc))
+            self.assertIn("outside server (mcp.example.com)", sc.findings[0]["title"])
             self.assertEqual({a["name"] for a in sc.agents if a["type"] == "mcp"}, {"docs", "remote"})
 
     def test_empty_home(self):
@@ -171,6 +173,41 @@ class SafeHome(unittest.TestCase):
         with tempfile.TemporaryDirectory() as home:
             write(home, ".cursor/mcp.json", "{ this is not json")
             scan(home)
+
+
+class RemoteAndPinning(unittest.TestCase):
+    def test_mcp_remote_proxy_flags_host(self):
+        with tempfile.TemporaryDirectory() as home:
+            write(home, ".cursor/mcp.json", {"mcpServers": {
+                "toolcheck": {"command": "npx", "args": ["-y", "mcp-remote", "https://m8ven.ai/api/mcp/tool-check"]},
+                "plain": {"command": "npx", "args": ["-y", "mcp-remote@0.1.0", "http://evil.example.com/mcp"]},
+                "local": {"command": "npx", "args": ["-y", "mcp-remote@0.1.0", "http://localhost:3000/mcp"]},
+            }})
+            t = titles(scan(home))
+            self.assertIn("MCP server 'toolcheck' sends data to an outside server (m8ven.ai)", t)
+            self.assertTrue(any("'plain' talks to the internet without encryption" in x for x in t))
+            self.assertFalse(any("'local'" in x for x in t))
+
+    def test_pin_suggestion_uses_cached_version(self):
+        with tempfile.TemporaryDirectory() as home:
+            write(home, ".npm/_npx/abc123/node_modules/mcp-remote/package.json", {"version": "0.1.29"})
+            write(home, ".cursor/mcp.json", {"mcpServers": {
+                "a": {"command": "npx", "args": ["-y", "mcp-remote", "https://x.example.com"]},
+                "b": {"command": "npx", "args": ["-y", "some-uncached-pkg"]},
+            }})
+            fixes = {f["title"]: f["fix"] for f in scan(home).findings}
+            self.assertIn("mcp-remote@0.1.29", fixes["MCP server 'a' auto-installs the latest code every launch"])
+            b = fixes["MCP server 'b' auto-installs the latest code every launch"]
+            self.assertIn("npm view some-uncached-pkg version", b)
+            self.assertNotIn("1.2.3", b)
+
+    def test_summary_separates_installed_from_running(self):
+        with tempfile.TemporaryDirectory() as home:
+            sc = scan(home)
+            sc.agents = [{"type": "mcp", "name": "x", "where": "", "detail": ""},
+                         {"type": "process", "name": "Claude", "where": "pid 1", "detail": ""}]
+            j = ag.to_json(sc)["summary"]
+            self.assertEqual((j["agents"], j["running"]), (1, 1))
 
 
 class Helpers(unittest.TestCase):

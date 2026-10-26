@@ -44,7 +44,7 @@
   th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
   .tag { font: 700 12px var(--mono); padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
-  .tag.h { color: var(--red); background: #2a1215; } .tag.mid { color: var(--yellow); background: #2a2410; }
+  .tag.h { color: var(--red); background: #2a1215; } .tag.mid { color: var(--yellow); background: #2a2410; } .tag.low { color: var(--cyan); background: #0f2230; }
   code { font: 13.5px var(--mono); background: var(--panel); padding: 2px 6px; border-radius: 4px; }
   .pill-row { display: flex; flex-wrap: wrap; gap: 10px; }
   .pill { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 14.5px; }
@@ -68,6 +68,7 @@
 
 <section>
   <h2>Real result from my own laptop</h2>
+  <p class="m" style="font-size:14px">v1.0 scan. In v1.1 the summary reports installed agents and running processes separately.</p>
   <div class="term">
     <div class="bar"><i></i><i></i><i></i></div>
 <pre><span class="m">$</span> python3 ai_guardian.py
@@ -115,6 +116,7 @@
     <tr><td><span class="tag h">HIGH</span></td><td>Agent plugin over unencrypted <code>http://</code></td><td>Traffic can be read or changed in transit</td></tr>
     <tr><td><span class="tag mid">MEDIUM</span></td><td>Plugins that auto-install the latest code</td><td>A hijacked package runs with your agent's access</td></tr>
     <tr><td><span class="tag mid">MEDIUM</span></td><td>AI extensions that can read every website</td><td>Includes your email, bank, and work tools</td></tr>
+    <tr><td><span class="tag low">LOW</span></td><td>Agent plugins that send data to an outside server</td><td>Your files and messages leave your computer</td></tr>
   </table>
 </section>
 
@@ -125,7 +127,7 @@
     <span class="pill">🙈 Secrets always masked</span>
     <span class="pill">🏠 Nothing leaves your computer</span>
     <span class="pill">📦 No installs, Python standard library</span>
-    <span class="pill">🧪 23 tests</span>
+    <span class="pill">🧪 26 tests</span>
   </div>
 </section>
 
@@ -142,6 +144,11 @@ python3 ai_guardian.py --fail-on medium  <span class="m"># stricter exit code fo
 </section>
 
 <section>
+  <h2>New in v1.1: tested on the index that listed it</h2>
+  <p style="color:#c3c9d6;max-width:700px">The day M8ven added ai-guardian to its MCP Trust Index, I installed M8ven's own ToolCheck server and scanned before and after. ai-guardian caught it at once, and the diff revealed a flaw in my own tool: the agent count dropped after I added one, because live processes shared a total with installed agents. v1.1 fixes that, flags plugins that send data to outside servers, and gives real version-pinning advice.</p>
+</section>
+
+<section>
   <h2>Why I built this</h2>
   <p style="color:#c3c9d6;max-width:700px">At Fal.Con 2026, CrowdStrike launched Falcon Guardian to help enterprises discover their AI agents, map what they can access, and stop threats where they run. The idea is right. But the people installing AI agents fastest (freelancers, small shops, students) will never buy enterprise security. ai-guardian brings the same <b>discover → map → watch</b> model to everyone else, for free.</p>
 </section>
@@ -150,6 +157,7 @@ python3 ai_guardian.py --fail-on medium  <span class="m"># stricter exit code fo
   <h2>Roadmap</h2>
   <table>
     <tr><td class="g b">✓ v1</td><td>Discover + Map: find AI agents and flag risky setups</td></tr>
+    <tr><td class="g b">✓ v1.1</td><td>Accuracy: installed vs. running counts, outside-server detection, real version pinning</td></tr>
     <tr><td class="m b">v2</td><td>Watch: live phone alerts on sketchy AI behavior</td></tr>
     <tr><td class="m b">v3</td><td>Explain: a local AI describes each alert in plain English</td></tr>
     <tr><td class="m b">v4</td><td>Red vs. blue lab: agents attack each other with prompt injection to build detection rules</td></tr>
