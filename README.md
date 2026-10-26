@@ -1,4 +1,4 @@
-# ai-guardian 🛡️
+# ai-guardian 
 
 **Find the AI agents on your machine, and see what they can touch.**
 
